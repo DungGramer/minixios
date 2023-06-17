@@ -3,8 +3,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "build",
-    "target": "es2018",
-    "lib": ["DOM", "ES5", "scripthost"]
+    "target": "es2015",
+    "lib": ["DOM", "ES2015", "scripthost"]
   },
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }
