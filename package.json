@@ -1,27 +1,23 @@
 {
-  "name": "",
-  "version": "0.0.0",
-  "description": "",
-  "main": "build/src/index.js",
-  "types": "build/src/index.d.ts",
-  "files": [
-    "build/src"
+  "name": "main-minixios",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/**",
+    "mock/**"
   ],
-  "license": "Apache-2.0",
-  "keywords": [],
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "mock": "nodemon ./mock/backend.js",
-    "lint": "gts lint",
-    "clean": "gts clean",
-    "compile": "tsc",
-    "fix": "gts fix",
-    "prepare": "npm.cmd run compile",
-    "pretest": "npm.cmd run compile",
-    "posttest": "npm.cmd run lint"
+    "mock": "yarn workspace mock start",
+    "build": "yarn workspace minixios compile"
   },
   "devDependencies": {
     "@types/node": "^14.11.2",
     "body-parser": "^1.20.2",
+    "concurrently": "^8.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "gts": "^3.1.1",
     "jsonwebtoken": "^9.0.0",
@@ -30,5 +26,16 @@
   "dependencies": {
     "axios": "^1.3.5",
     "jsdom": "^21.1.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DungGramer/minixios.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DungGramer/minixios/issues"
+  },
+  "homepage": "https://github.com/DungGramer/minixios#readme"
 }

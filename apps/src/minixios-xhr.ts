@@ -3,17 +3,17 @@ class HttpClient {
   refreshToken: string | null;
   refreshPromise: Promise<any> | null;
   baseURL: string;
-  refreshURL?: string;
   tokenURL?: string;
+  headers: any;
 
   constructor(
     baseURL:
       | {
           base: string;
-          refreshToken: string;
           getToken: string;
         }
-      | string
+      | string,
+    headers?: any
   ) {
     this.accessToken = null;
     this.refreshToken = null;
@@ -23,41 +23,50 @@ class HttpClient {
       this.baseURL = baseURL;
     } else {
       this.baseURL = baseURL.base;
-      this.refreshURL = baseURL.refreshToken;
       this.tokenURL = baseURL.getToken;
     }
+
+    this.headers = headers || {
+      'Content-Type': 'application/json',
+    };
   }
 
-  setAccessToken(token: HttpClient['accessToken']) {
+  setToken(token: {
+    accessToken?: HttpClient['accessToken'];
+    refreshToken?: HttpClient['refreshToken'];
+  }) {
     if (!token) return;
-    this.accessToken = token;
+    this.accessToken = token.accessToken || null;
+    this.refreshToken = token.refreshToken || null;
+
+    return this;
   }
 
-  setRefreshToken(token: HttpClient['refreshToken']) {
-    if (!token) return;
-    this.refreshToken = token;
-  }
-
-  refresh(refreshURL?: HttpClient['refreshURL'], headers?: any): Promise<any> {
+  refresh(headers?: any): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.refreshToken) return null;
       if (this.refreshPromise) return this.refreshPromise;
 
-      const url = new URL(refreshURL || this.refreshURL || '', this.baseURL);
+      const url = new URL(this.tokenURL || '', this.baseURL);
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', url);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      for (let k in headers) {
-        xhr.setRequestHeader(k, headers[k]);
+
+      const requestHeaders = {
+        ...this.headers,
+        ...headers,
+      };
+
+      for (const k in requestHeaders) {
+        xhr.setRequestHeader(k, requestHeaders[k]);
       }
+
       xhr.onreadystatechange = () => {
         if (xhr.readyState === 4) {
           if (xhr.status === 200) {
             const data = JSON.parse(xhr.responseText);
-            this.setAccessToken(data.accessToken);
-            this.setRefreshToken(data.refreshToken);
-            resolve(data.accessToken);
+            this.setToken(data);
+            resolve(data);
           } else {
             const error = new Error(
               xhr.statusText || 'Failed to refresh token'
@@ -65,67 +74,69 @@ class HttpClient {
             console.error('Failed to refresh token:', error);
             reject(error);
           }
+          return;
         }
       };
-      const requestBody = JSON.stringify({refreshToken: this.refreshToken});
+      const requestBody = JSON.stringify({token: this.refreshToken});
       xhr.send(requestBody);
 
       return;
     });
   }
 
-  getToken(tokenURL?: HttpClient['tokenURL'], headers?: any) {
+  getToken(path: string, body: any, headers?: any) {
     return new Promise(async (resolve, reject) => {
-      if (!this.accessToken) {
-        resolve(null);
+      if (this.accessToken) {
+        resolve(this.accessToken);
         return;
       }
 
-      const token = this.accessToken;
-      const url = new URL(tokenURL || this.tokenURL || '', this.baseURL);
+      const url = new URL(path, this.baseURL);
 
       const xhr = new XMLHttpRequest();
-      xhr.open('GET', url);
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      for (let k in headers) {
-        xhr.setRequestHeader(k, headers[k]);
+      xhr.open('POST', url);
+
+      const requestHeaders = {
+        ...this.headers,
+        ...headers,
+      };
+
+      for (const k in requestHeaders) {
+        xhr.setRequestHeader(k, requestHeaders[k]);
       }
+
       xhr.onreadystatechange = () => {
         if (xhr.readyState === 4) {
-          if (xhr.status === 401) {
-            // Token is invalid, try to refresh it
-            this.refresh()
-              .then(token => {
-                resolve(token);
-              })
-              .catch(() => {
-                const error = new Error(
-                  'Failed to refresh token, please log in again'
-                );
-                console.error('Failed to refresh token:', error);
-                reject(error);
-              });
-          } else if (xhr.status === 200) {
-            resolve(token);
+          if (xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+
+            this.setToken(data);
+
+            resolve(data);
           } else {
-            const error = new Error(
-              xhr.statusText || `Request failed with status ${xhr.status}`
-            );
-            console.error(error.message);
+            const error = new Error(xhr.statusText || 'Failed to get token');
+            console.error('Failed to get token:', error);
             reject(error);
           }
+          return;
         }
       };
-      xhr.send();
+
+      const requestBody = JSON.stringify(body);
+      xhr.send(requestBody);
     });
   }
 
   request({method, path, headers, body}: any) {
     return new Promise(async (resolve, reject) => {
-      const token = await this.getToken();
+      const token = this.accessToken;
+      if (!token) {
+        reject(new Error('No access token found, please log in first'));
+        return;
+      }
 
       const requestHeaders = {
-        'Content-Type': headers?.contentType || 'application/json',
+        ...this.headers,
         ...(token ? {Authorization: `Bearer ${token}`} : {}),
         ...headers,
       };
@@ -134,15 +145,27 @@ class HttpClient {
 
       const xhr = new XMLHttpRequest();
       xhr.open(method, url);
-      for (let k in requestHeaders) {
+      for (const k in requestHeaders) {
         xhr.setRequestHeader(k, requestHeaders[k]);
       }
+
       xhr.onreadystatechange = () => {
         if (xhr.readyState === 4) {
           if (xhr.status === 401) {
-            const error = new Error('Invalid token, please log in again');
-            console.error(error.message);
-            reject(error);
+            // Token is invalid, try to refresh it
+            this.refresh()
+              .then(token => {
+                this.request({method, path, headers, body})
+                  .then(resolve)
+                  .catch(reject);
+              })
+              .catch(() => {
+                const error = new Error(
+                  'Failed to refresh token, please log in again'
+                );
+                console.error('Failed to refresh token:', error);
+                reject(error);
+              });
           } else if (xhr.status >= 200 && xhr.status < 300) {
             const data = JSON.parse(xhr.responseText);
             resolve(data);
@@ -155,6 +178,7 @@ class HttpClient {
           }
         }
       };
+
       const requestBody = JSON.stringify(body);
       xhr.send(requestBody);
     });
@@ -182,3 +206,31 @@ class HttpClient {
 }
 
 export default HttpClient;
+
+const baseURL = 'http://localhost:8080';
+
+const httpClient = new HttpClient({
+  base: baseURL,
+  getToken: '/token',
+});
+
+async function getToken() {
+  const token = await httpClient.getToken('/login', {
+    username: 'admin',
+    password: 'admin',
+  }); //?
+
+  // await httpClient.refresh().then(token => {
+  //   console.log('token:', token);
+  // });
+
+  await httpClient
+    .post('/logout', {
+      token: token.refreshToken,
+    })
+    .then(token => {
+      console.log('token:', token);
+    });
+}
+
+getToken(); //?

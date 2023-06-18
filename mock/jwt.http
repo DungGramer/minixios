@@ -1,0 +1,41 @@
+POST http://localhost:8081/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin"
+}
+
+###
+POST http://localhost:8081/refreshToken
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNjg3MTEyMDUzfQ.DjVaLjb8tTsBYAeDITdIrK0QUZWKqoFn_oUNYMyXtZY"
+}
+
+###
+GET http://localhost:8081/expires-in
+
+###
+POST http://localhost:8081/logout
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNjg3MTEyODI0fQ.Cosv2qwBs6Z2Wouxzfk3U1qdb_jBa9EeLJmVHO9BeVU"
+}
+
+###
+POST http://localhost:8081/register
+Content-Type: application/json
+
+{
+  "username": "test1",
+  "password": "test1",
+  "role": "admin"
+}
+
+
+###
+GET http://localhost:8080/books
+Authorization: Beaer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRlc3QxIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNjg3MTEyNjk1LCJleHAiOjE2ODcxMTI3MjV9.EUWCWKzR70M51gRG-jC8k6IFZ6-006lEIoIPI6mrGOM

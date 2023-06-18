@@ -1,0 +1,14 @@
+{
+  "name": "mock",
+  "version": "1.0.0",
+  "main": "server-auth.js",
+  "scripts": {
+    "mock-data": "nodemon ./server-data.js",
+    "mock-auth": "nodemon ./server-auth.js",
+    "start": "concurrently \"npm.cmd run mock-data\" \"npm.cmd run mock-auth\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
