@@ -218,7 +218,7 @@ async function getToken() {
   const token = await httpClient.getToken('/login', {
     username: 'admin',
     password: 'admin',
-  }); //?
+  }) as any;
 
   // await httpClient.refresh().then(token => {
   //   console.log('token:', token);
